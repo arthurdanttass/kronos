@@ -576,8 +576,8 @@ header {
     <button onclick="requestNotifPerm()">Ativar notificações</button>
   </div>
   <div class="sync-config-banner" id="sync-banner">
-    ☁️ Configure a sincronização entre dispositivos para usar no iPhone e desktop simultaneamente.
-    <button onclick="openSyncSetup()">Configurar Sync</button>
+    ☁️ Configure a sincronização entre iPhone e desktop em tempo real.
+    <button onclick="openSyncSetup()">⚙️ Configurar Sync</button>
     <button onclick="document.getElementById('sync-banner').classList.add('hidden')" style="background:transparent;color:#8fb8f7;border:1px solid rgba(79,142,247,0.3)">Ignorar</button>
   </div>
 
@@ -696,24 +696,25 @@ header {
 <div class="modal-backdrop" id="sync-modal" onclick="if(event.target===this)this.classList.remove('open')">
   <div class="modal" style="max-width:480px">
     <div class="modal-title">☁️ Sincronização em Tempo Real</div>
-    <div class="modal-subtitle">Conecte ao Firebase para sincronizar entre iPhone e desktop automaticamente</div>
+    <div class="modal-subtitle">Use o mesmo ID nos dois dispositivos para sincronizar automaticamente</div>
     <div class="field">
-      <label class="field-label">Seu ID único (compartilhe entre dispositivos)</label>
+      <label class="field-label">Seu ID de sincronização</label>
       <div style="display:flex;gap:8px">
-        <input class="field-input" id="sync-uid" placeholder="Ex: meu-kronos-2025" style="flex:1"/>
-        <button onclick="genUID()" style="background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text2);padding:0 12px;cursor:pointer;font-size:12px;white-space:nowrap">Gerar</button>
+        <input class="field-input" id="sync-uid" placeholder="Ex: minha-agenda-2025" style="flex:1"/>
+        <button onclick="genUID()" style="background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text2);padding:0 12px;cursor:pointer;font-size:12px;white-space:nowrap;font-family:var(--font-body)">🎲 Gerar</button>
       </div>
     </div>
-    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px 16px;font-size:12px;color:var(--text3);line-height:1.6;margin-bottom:16px">
-      💡 <strong style="color:var(--text2)">Como funciona:</strong><br>
-      1. Digite o mesmo ID nos dois dispositivos (iPhone e computador)<br>
-      2. Os dados sincronizam automaticamente em tempo real<br>
-      3. Funciona offline — sincroniza quando reconectar<br>
-      <span style="color:var(--accent)">Os dados ficam no Firebase Realtime Database (gratuito).</span>
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px 16px;font-size:12px;color:var(--text3);line-height:1.8;margin-bottom:16px">
+      <strong style="color:var(--accent)">Como usar:</strong><br>
+      1. Clique em <strong style="color:var(--text2)">🎲 Gerar</strong> para criar um ID único<br>
+      2. Copie o ID e anote em algum lugar seguro<br>
+      3. No iPhone, abra o Kronos → ☁️ Configurar Sync → cole o mesmo ID<br>
+      4. Pronto! Qualquer mudança aparece nos dois dispositivos em segundos ⚡
     </div>
+    <div id="sync-status-msg" style="display:none;padding:10px 14px;border-radius:var(--radius-sm);font-size:12px;margin-bottom:16px"></div>
     <div class="modal-actions">
-      <button class="btn-cancel" onclick="document.getElementById('sync-modal').classList.remove('open')">Cancelar</button>
-      <button class="btn-save" onclick="activateSync()">Ativar Sync</button>
+      <button class="btn-cancel" onclick="document.getElementById('sync-modal').classList.remove('open')">Fechar</button>
+      <button class="btn-save" onclick="activateSync()">✅ Ativar Sincronização</button>
     </div>
   </div>
 </div>
@@ -1544,13 +1545,11 @@ function saveBlock(){
    FIREBASE SYNC
    ══════════════════════════════════════════════ */
 const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyDemo-KronosPlaceholder",
-  authDomain: "kronos-sync.firebaseapp.com",
-  databaseURL: "https://kronos-sync-default-rtdb.firebaseio.com",
-  projectId: "kronos-sync",
-  storageBucket: "kronos-sync.appspot.com",
-  messagingSenderId: "000000000000",
-  appId: "1:000000000000:web:00000000"
+  apiKey: "AIzaSyDe4FkG4n3VOOwlegj7TOJobSvIalf-4tM",
+  authDomain: "projeto-kronos-f7108.firebaseapp.com",
+  databaseURL: "https://projeto-kronos-f7108-default-rtdb.firebaseio.com",
+  projectId: "projeto-kronos-f7108",
+  storageBucket: "projeto-kronos-f7108.appspot.com"
 };
 
 function setSyncStatus(status, text){
@@ -1573,17 +1572,32 @@ function genUID(){
 }
 
 function activateSync(){
-  const uid=document.getElementById('sync-uid').value.trim();
-  if(!uid){alert('Digite um ID.');return;}
-  localStorage.setItem(SYNC_SK,uid);
-  document.getElementById('sync-modal').classList.remove('open');
+  const uid = document.getElementById('sync-uid').value.trim();
+  if (!uid) { alert('Digite ou gere um ID primeiro.'); return; }
+  localStorage.setItem(SYNC_SK, uid);
+
+  const msg = document.getElementById('sync-status-msg');
+  msg.style.display = 'block';
+  msg.style.cssText = 'display:block;padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:16px;background:rgba(82,196,138,0.1);border:1px solid rgba(82,196,138,0.3);color:#52c48a';
+  msg.textContent = '⏳ Conectando ao Firebase…';
+
   document.getElementById('sync-banner').classList.add('hidden');
   initFirebase(uid);
+
+  setTimeout(() => {
+    const dot = document.getElementById('sync-dot');
+    if (dot && dot.classList.contains('ok')) {
+      msg.textContent = '✅ Sincronização ativa! Use o mesmo ID "' + uid + '" no outro dispositivo.';
+      setTimeout(() => document.getElementById('sync-modal').classList.remove('open'), 2500);
+    } else {
+      msg.style.cssText = 'display:block;padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:16px;background:rgba(247,119,79,0.1);border:1px solid rgba(247,119,79,0.3);color:#f7774f';
+      msg.textContent = '⚠️ Verifique se o Realtime Database está ativo no Firebase Console e em modo de teste.';
+    }
+  }, 3000);
 }
 
 function initFirebase(uid){
   try {
-    // Initialize firebase if not already done
     if (!firebase.apps.length) {
       firebase.initializeApp(FIREBASE_CONFIG);
     }
@@ -1592,43 +1606,62 @@ function initFirebase(uid){
     syncActive = true;
     setSyncStatus('syncing','Conectando…');
 
-    const ref = firebaseDB.ref('users/'+uid);
+    const ref = firebaseDB.ref('kronos/' + uid);
 
-    // Listen for remote changes
-    ref.on('value', snap => {
-      if(_remoteWrite)return; // ignore our own writes
-      const remote = snap.val();
-      if(!remote)return;
-      if(remote.data)    { data      = remote.data;      try{localStorage.setItem(SK,JSON.stringify(data));}catch(e){} }
-      if(remote.recurring){ recurring = remote.recurring; try{localStorage.setItem(RECUR_SK,JSON.stringify(recurring));}catch(e){} }
-      setSyncStatus('ok','Sincronizado');
-      render();
+    // Test connection
+    firebase.database().ref('.info/connected').on('value', snap => {
+      if (snap.val() === true) {
+        setSyncStatus('ok', 'Sincronizado ✓');
+      } else {
+        setSyncStatus('error', 'Offline');
+      }
     });
 
-    setSyncStatus('ok','Ativo');
+    // Listen for remote changes (other device wrote)
+    ref.on('value', snap => {
+      if (_remoteWrite) return;
+      const remote = snap.val();
+      if (!remote) { syncUp(); return; } // first time — push local data up
+      // Only update if remote is newer
+      const remoteTs = remote.updatedAt || 0;
+      const localTs  = parseInt(localStorage.getItem('kronos_ts') || '0');
+      if (remoteTs > localTs) {
+        if (remote.data)      { data      = remote.data;      try{localStorage.setItem(SK, JSON.stringify(data));}catch(e){} }
+        if (remote.recurring) { recurring = remote.recurring; try{localStorage.setItem(RECUR_SK, JSON.stringify(recurring));}catch(e){} }
+        try { localStorage.setItem('kronos_ts', remoteTs); } catch(e) {}
+        setSyncStatus('ok', 'Sincronizado ✓');
+        render();
+      }
+    });
+
   } catch(e) {
-    setSyncStatus('error','Erro Firebase');
-    showToast('⚠️','Sync','Firebase não configurado. Use a mesma URL do Firebase em seus dispositivos.',8000);
+    console.error('Firebase error:', e);
+    setSyncStatus('error', 'Erro: ' + e.message);
+    showToast('⚠️','Erro de Sync', e.message, 8000);
   }
 }
 
 function syncUp(){
-  if(!syncActive||!firebaseDB||!syncUID)return;
-  _remoteWrite=true;
-  const ref=firebaseDB.ref('users/'+syncUID);
-  setSyncStatus('syncing','Salvando…');
-  ref.set({data, recurring, updatedAt: Date.now()})
-    .then(()=>{setSyncStatus('ok','Sincronizado');})
-    .catch(()=>{setSyncStatus('error','Erro ao salvar');})
-    .finally(()=>{setTimeout(()=>{_remoteWrite=false;},300);});
+  if (!syncActive || !firebaseDB || !syncUID) return;
+  _remoteWrite = true;
+  const ts = Date.now();
+  try { localStorage.setItem('kronos_ts', ts); } catch(e) {}
+  setSyncStatus('syncing', 'Salvando…');
+  firebaseDB.ref('kronos/' + syncUID).set({ data, recurring, updatedAt: ts })
+    .then(() => { setSyncStatus('ok', 'Sincronizado ✓'); })
+    .catch(err => { setSyncStatus('error', 'Erro: ' + err.code); showToast('⚠️','Sync falhou', err.message, 6000); })
+    .finally(() => { setTimeout(() => { _remoteWrite = false; }, 400); });
 }
 
 function checkSyncSetup(){
-  const uid=localStorage.getItem(SYNC_SK);
-  if(uid){
+  const uid = localStorage.getItem(SYNC_SK);
+  if (uid) {
     document.getElementById('sync-banner').classList.add('hidden');
     initFirebase(uid);
   }
+  // Add click to sync label to reopen setup
+  const sl = document.getElementById('sync-label');
+  if (sl) { sl.style.cursor = 'pointer'; sl.title = 'Clique para configurar sync'; sl.onclick = () => openSyncSetup(); }
 }
 
 /* ══════════════════════════════════════════════
